@@ -1,0 +1,11 @@
+numpy
+pandas
+matplotlib
+scikit-learn
+jupyter
+tqdm
+pyyaml
+
+# Deep learning
+# torch
+# torchvision

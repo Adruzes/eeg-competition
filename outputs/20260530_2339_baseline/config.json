@@ -1,0 +1,10 @@
+{
+  "run_name": "baseline",
+  "seed": 1234,
+  "lr": 0.001,
+  "batch_size": 512,
+  "epochs": 80,
+  "model_name": "baseline",
+  "optimizer": "Adam",
+  "scheduler": null
+}

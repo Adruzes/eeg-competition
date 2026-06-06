@@ -1,0 +1,194 @@
+\documentclass[a4paper,11pt]{jsarticle}
+
+\usepackage[dvipdfmx]{graphicx}
+\usepackage[dvipdfmx]{hyperref}
+\usepackage{pxjahyper}
+\usepackage{amsmath, amssymb}
+\usepackage{booktabs}
+\usepackage{url}
+\usepackage{geometry}
+\geometry{margin=25mm}
+
+\title{EEG Decoding Survey and Competition Strategy}
+\author{Daisuke Sano}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Objective}
+
+This paper reviews the relevant research and outlines model design strategies for tasks involving the classification of image categories based on EEG signals recorded during the presentation of visual stimuli.
+In particular, taking into account the spatial and temporal structures unique to EEG, we summarise the pre-processing techniques, model architectures and learning strategies that are effective in improving classification accuracy.
+
+*** Translated with www.DeepL.com/Translator (free version) ***
+
+\section{今回の課題設定}
+
+本課題では、画像刺激を見た際に記録されたEEG信号から、画像カテゴリを5クラスに分類する。
+
+\begin{itemize}
+    \item 入力：$17$ channels $\times$ $100$ time points
+    \item 出力：5クラス分類
+    \item 訓練データ：118,800 trials
+    \item 検証データ：59,400 trials
+    \item テストデータ：59,400 trials
+    \item 評価指標：Top-1 accuracy
+\end{itemize}
+
+各サンプルは、1回の画像提示に対するEEG応答を表すと考えられる。
+
+\section{EEGデータの特徴}
+
+EEGは、頭皮上電極から記録される多チャネル時系列信号である。
+そのため、画像とは異なり、空間方向の局所性よりも、チャネル間の関係と時間方向の波形変化を適切に扱う必要がある。
+
+本課題の入力は以下のテンソルとして表される。
+
+\begin{equation}
+    X \in \mathbb{R}^{C \times T},
+\end{equation}
+
+ここで、$C=17$ はチャネル数、$T=100$ は時系列長である。
+
+\section{データ解析}
+
+まず、訓練データの基本統計量を確認した。
+全体の平均、標準偏差、最小値、最大値は以下の通りであった。
+
+\begin{table}[h]
+\centering
+\caption{訓練EEGデータの基本統計量}
+\begin{tabular}{cccc}
+\toprule
+mean & std & min & max \\
+\midrule
+-0.052 & 0.812 & -159.0 & 44.0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+分位点を確認したところ、99.99パーセンタイルはおよそ5であり、大部分の値は$[-5,5]$の範囲内に収まっていた。
+一方で、最小値や最大値には極端な外れ値が存在した。
+
+\section{前処理方針}
+
+外れ値の影響を抑えるため、まず以下のclippingを検討する。
+
+\begin{equation}
+    X_{\mathrm{clip}} = \mathrm{clip}(X, -5, 5).
+\end{equation}
+
+また、各trial・各channelごとに時間方向で標準化するtrial-wise z-scoreも検討する。
+
+\begin{equation}
+    X'_{c,t} = \frac{X_{c,t} - \mu_c}{\sigma_c + \epsilon},
+\end{equation}
+
+ここで、$\mu_c$および$\sigma_c$は各trial内のchannel $c$ における時間方向の平均および標準偏差である。
+
+\section{関連研究}
+
+\subsection{Gifford et al., 2022}
+
+今回の課題は、Gifford et al. による視覚刺激提示時のEEGデータセットをもとに構成されている。
+このデータセットは、画像刺激に対するEEG応答を用いて、視覚情報がEEG信号にどの程度反映されるかを検証するために用いられている。
+
+\subsection{EEGNet}
+
+EEGNetは、EEG分類で広く使われる軽量な畳み込みニューラルネットワークである。
+時間方向の畳み込みとチャネル方向のdepthwise convolutionを組み合わせることで、EEG信号の時間特徴と空間特徴を効率的に抽出する。
+
+\subsection{Conformer}
+
+Conformerは、畳み込み層とTransformerを組み合わせた時系列モデルである。
+畳み込みにより局所的な時間特徴を抽出し、self-attentionにより長距離依存関係を捉えることができる。
+
+EEGは時系列信号であるため、ConformerはEEG decodingにも有効である可能性がある。
+
+\subsection{ARAYAのSpeech Decoding研究}
+
+ARAYAによる非侵襲的speech decoding研究では、大規模EEGデータを用いて、EEG表現と音声表現を対応づけるモデルが提案されている。
+この研究では、EEG信号に対してz-score、clipping、temporal convolution、Conformerなどが用いられており、本課題の前処理およびモデル設計にも参考になる。
+
+\subsection{Algonauts Project 2023}
+
+Algonauts Project 2023では、自然画像を見た際のfMRI応答を予測する課題が扱われた。
+入力モダリティは異なるものの、視覚刺激と脳活動を対応づけるという点で、本課題と共通する。
+
+\section{モデル設計方針}
+
+本課題では、以下のモデルを段階的に検討する。
+
+\begin{enumerate}
+    \item Baseline 1D CNN
+    \item Baseline + clipping
+    \item Baseline + trial-wise z-score + clipping
+    \item EEGNet
+    \item TCN
+    \item EEGNet + Conformer
+    \item 複数seedおよび複数モデルのアンサンブル
+\end{enumerate}
+
+\section{実験結果}
+
+実験結果は以下の表にまとめる。
+
+\begin{table}[h]
+\centering
+\caption{実験結果}
+\begin{tabular}{lccc}
+\toprule
+Model & Preprocess & Validation Accuracy & Test Accuracy \\
+\midrule
+Baseline & None & -- & -- \\
+Baseline & Clip $[-5,5]$ & -- & -- \\
+Baseline & Z-score + Clip & -- & -- \\
+EEGNet & Clip $[-5,5]$ & -- & -- \\
+EEGNet + Conformer & Clip $[-5,5]$ & -- & -- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{考察}
+
+まず、外れ値解析により、訓練データにはごく少数の極端な外れ値が存在することが分かった。
+そのため、clippingはモデルの学習安定化に寄与する可能性がある。
+
+また、EEGはチャネル方向と時間方向の構造を持つため、単純な1D CNNよりも、EEGNetやConformerのようにEEG信号の構造を明示的に利用するモデルが有効であると考えられる。
+
+\section{今後の方針}
+
+今後は、まずbaselineに対する前処理の効果を検証し、その後EEGNet、TCN、Conformerへ拡張する。
+最終的には、異なるモデル構造および異なるseedで学習したモデルのsoftmax確率平均により、汎化性能の向上を狙う。
+
+\begin{thebibliography}{9}
+
+\bibitem{gifford2022}
+Gifford, A. T., et al.
+Human EEG recordings for object recognition.
+\textit{NeuroImage}, 2022.
+
+\bibitem{eegnet}
+Lawhern, V. J., et al.
+EEGNet: a compact convolutional neural network for EEG-based brain-computer interfaces.
+\textit{Journal of Neural Engineering}, 2018.
+
+\bibitem{conformer}
+Gulati, A., et al.
+Conformer: Convolution-augmented Transformer for Speech Recognition.
+\textit{Interspeech}, 2020.
+
+\bibitem{araya2024}
+ARAYA Inc.
+Scaling Law in Neural Data: Non-Invasive Speech Decoding with 175 Hours of EEG Data.
+\textit{arXiv}, 2024.
+
+\bibitem{algonauts2023}
+The Algonauts Project 2023 Challenge.
+\url{https://algonautsproject.com/2023/}
+
+\end{thebibliography}
+
+\end{document}

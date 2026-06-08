@@ -1,0 +1,7 @@
+{
+    "run_name": "baseline",
+    "timestamp": "20260608_1059",
+    "lr": 0.001,
+    "batch_size": 512,
+    "epochs": 80
+}

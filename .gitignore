@@ -3,3 +3,7 @@ tensorboard/
 *.pt
 *.pth
 *.npy
+*.png
+*.jpg
+*.jpeg
+*.png

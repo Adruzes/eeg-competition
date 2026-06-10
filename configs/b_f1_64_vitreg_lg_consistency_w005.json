@@ -1,0 +1,11 @@
+{
+  "run_name": "b_f1_64_vitreg_lg_consistency_w005",
+  "seed": 1234,
+  "lr": 0.001,
+  "batch_size": 512,
+  "epochs": 80,
+  "model_name": "baseline",
+  "optimizer": "Adam",
+  "scheduler": null,
+  "preprocess": "np.clip(X, -5, 5)"
+}
